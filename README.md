@@ -1,1 +1,1 @@
-# playing_cards_detection
+# カード認識
