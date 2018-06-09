@@ -45,7 +45,7 @@ def parser():
     parser.add_argument('--cpu', action='store_true', help='use cuda?')
     parser.add_argument('--seed', type=int, default=123,
                         help='random seed to use. Default=123')
-    parser.add_argument('--data_path', type=str, default="/ceph/rmurase/Datasets/card_templates/",
+    parser.add_argument('--data_path', type=str, default="../dataset_generator/src/card_templates",
                         help='path to image dataset')
     args = parser.parse_args()
     return args
