@@ -17,7 +17,7 @@ import argparse
 from math import log10
 import cv2
 import glob
-
+import shutil
 
 def parser():
     # Training settings
@@ -29,12 +29,14 @@ def parser():
     parser.add_argument("--save", dest='save', help="save directory",
                         default="backup/", type=str)
     parser.add_argument("--reso", dest='reso', help="Input resolution of the network. Increase to increase accuracy. Decrease to increase speed",
-                        default="416", type=int)
+                        default=416, type=int)
     parser.add_argument('--batchsize', type=int, default=32,
                         help='training batch size')
     parser.add_argument('--nEpochs', type=int, default=100,
                         help='number of epochs to train for')
-    parser.add_argument('--save_interval', type=int, default=10,
+    parser.add_argument('--iteration', type=int, default=100,
+                        help='number of itertaion')
+    parser.add_argument('--save_interval', type=int, default=5,
                         help='a period of save checkpoint')
     parser.add_argument('--lr', type=float, default=0.001,
                         help='Learning Rate. Default=0.01')
@@ -47,6 +49,8 @@ def parser():
                         help='random seed to use. Default=123')
     parser.add_argument('--data_path', type=str, default="/ceph/rmurase/Datasets/card_templates/",
                         help='path to image dataset')
+    parser.add_argument('--arch', type=str, default="yolo-v3",
+                        help='name of architecture')
     args = parser.parse_args()
     return args
 
@@ -74,13 +78,13 @@ def main(args):
             mask = [int(x) for x in mask]
             anchors = x["anchors"].split(",")
             anchors = [int(a) for a in anchors]
-            anchors = [anchors[i] for k in mask for i in (2*k, 2*k+1)]
+            anchors = [anchors[i] for k in mask for i in (2 * k, 2 * k + 1)]
             scale_anchors.append(anchors)
             nC = int(x['classes'])
     args.reso = int(args.reso)
-    strides = [32//(x+1) for x in range(len(scale_anchors))]
-    resos = [args.reso//x for x in strides]
-    num_boxes = sum([3*(x**2) for x in resos])
+    strides = [32 // (x + 1) for x in range(len(scale_anchors))]
+    resos = [args.reso // x for x in strides]
+    num_boxes = sum([3 * (x**2) for x in resos])
 
     nA = len(anchors) // 2
     print("num_classes={}, anchors={}, num_anchors={}, resolution={}, strides={}, device={}".format(
@@ -104,7 +108,7 @@ def main(args):
         image_classid_list=image_file_names,
         transform=transforms.Compose([
             transforms.ToTensor()]),
-        data_size=args.batchsize*100,
+        data_size=args.batchsize * args.iteration,
     )
 
     dataloader = torch.utils.data.DataLoader(
@@ -115,20 +119,23 @@ def main(args):
         args.batchsize, [args.reso, args.reso]))
 
     # train and test
+    best_loss = 1e10
     for epoch in range(1, args.nEpochs + 1):
-        train(model, optimizer, dataloader, criterion, device, epoch, args)
+        best_loss = train(model, optimizer, dataloader,
+                          criterion, device, epoch, best_loss, args)
         # test(model, dataloader, criterion, device, epoch, args)
 
 
 def adjust_learning_rate(args, optimizer, epoch):
-    lr = args.lr * ((1.0/args.lr_decay) ** (epoch // args.lr_step))
+    lr = args.lr * ((1.0 / args.lr_decay) ** (epoch // args.lr_step))
     # print("===> Epoch {} lr: {}".format(epoch, lr))
     for param_group in optimizer.param_groups:
         param_group['lr'] = lr
     return lr
 
 
-def train(model, optimizer, dataloader, criterion, device, epoch, args):
+def train(model, optimizer, dataloader, criterion, device, epoch, best_loss, args):
+    model.train()
     lr = adjust_learning_rate(args, optimizer, epoch)
     epoch_loss = 0
     for iteration, batch in enumerate(dataloader, 1):
@@ -147,11 +154,21 @@ def train(model, optimizer, dataloader, criterion, device, epoch, args):
             f.write('{}\n'.format(loss.item()))
     print("\n ==> Epoch {} Complete: Avg. Loss: {:.4f}".format(
         epoch, epoch_loss / len(dataloader)))
-    if (epoch+1) % args.save_interval == 0:
-        print('save weights to %s/%06d.weights' % (args.save, epoch+1))
-        model.seen = (epoch + 1) * len(dataloader)
-        model.save_weights('%s/%06d.weights' % (args.save, epoch+1))
-    
+    if epoch % args.save_interval == 0:
+        print('save weights to %s/%06d.weights' % (args.save, epoch))
+        # model.seen = epoch * len(dataloader)
+        # model.save_weights('%s/%06d.weights' % (args.save, epoch))
+        is_best = epoch_loss < best_loss
+        filename = os.path.join(args.save, '{:06d}.pth.tar'.format(epoch))
+        save_checkpoint({
+            'epoch': epoch + 1,
+            'arch': args.arch,
+            'state_dict': model.state_dict(),
+            'optimizer': optimizer.state_dict(),
+        }, is_best, filename)
+        if is_best:
+            best_loss = epoch_loss
+    return best_loss
 
 
 def test(model, dataloader, criterion, device, epoch, args):
@@ -165,7 +182,14 @@ def test(model, dataloader, criterion, device, epoch, args):
             avg_loss += loss
             if iteration > 100:
                 break
-    print("===>Epoch: {} Avg. Loss: {:.4f} dB\n".format(epoch, avg_loss / 100))
+    print("===> Epoch: {} Avg. Loss: {:.4f} dB\n".format(epoch, avg_loss / 100))
+
+
+def save_checkpoint(state, is_best, filename):
+    torch.save(state, filename)
+    if is_best:
+        best_path = os.path.join(args.save, 'model_best.pth.tar')
+        shutil.copyfile(filename, best_path)
 
 
 if __name__ == "__main__":
@@ -175,7 +199,8 @@ if __name__ == "__main__":
     if not os.path.exists(args.save):
         os.mkdir(args.save)
     if not os.path.exists(args.data_path):
-        msg = 'Folder not found at: {}\nSpecify correct path with argument --data_path'.format(args.data_path)
+        msg = 'Folder not found at: {}\nSpecify correct path with argument --data_path'.format(
+            args.data_path)
         raise OSError(msg)
     if os.path.exists(os.path.join(args.save, 'loss.txt')):
         os.remove(os.path.join(args.save, 'loss.txt'))
