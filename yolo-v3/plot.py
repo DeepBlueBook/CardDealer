@@ -22,6 +22,7 @@ def plot(data, num, color='r', label=''):
     plt.plot(range(len(data)), data, color=color, label=label)
     plt.xlabel('Iterations')
     plt.ylabel('Training Loss')
+    plt.yscale('log')
     # plt.ylim(0,0.00025)
     # plt.xticks(range(0,4500,1000))
 
