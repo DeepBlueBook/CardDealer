@@ -104,6 +104,7 @@ def main(args):
         image_classid_list=image_file_names,
         transform=transforms.Compose([
             transforms.ToTensor()]),
+        data_size=args.batchsize*100,
     )
 
     dataloader = torch.utils.data.DataLoader(
@@ -142,12 +143,15 @@ def train(model, optimizer, dataloader, criterion, device, epoch, args):
 
         print("\r===> Epoch[{}]({}/{}): lr: {} Loss: {:.3f}".format(epoch,
                                                                     iteration, len(dataloader), lr, loss.item()), end='')
+        with open(os.path.join(args.save, 'loss.txt'), 'a') as f:
+            f.write('{}\n'.format(epoch_loss))
     print("\n ==> Epoch {} Complete: Avg. Loss: {:.4f}".format(
         epoch, epoch_loss / len(dataloader)))
     if (epoch+1) % args.save_interval == 0:
         print('save weights to %s/%06d.weights' % (args.save, epoch+1))
         model.seen = (epoch + 1) * len(dataloader)
         model.save_weights('%s/%06d.weights' % (args.save, epoch+1))
+    
 
 
 def test(model, dataloader, criterion, device, epoch, args):
@@ -173,4 +177,6 @@ if __name__ == "__main__":
     if not os.path.exists(args.data_path):
         msg = 'Folder not found at: {}\nSpecify correct path with argument --data_path'.format(args.data_path)
         raise OSError(msg)
+    if os.path.exists(os.path.join(args.save, 'loss.txt')):
+        os.remove(os.path.join(args.save, 'loss.txt'))
     main(args)
