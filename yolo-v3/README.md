@@ -13,10 +13,6 @@ port of the original code, https://github.com/marvis/pytorch-caffe-darknet-conve
 
 Using PyTorch 0.3 will break the detector.
 
-
-## Detection Example
-
-![Detection Example](https://i.imgur.com/m2jwneng.png)
 ## Running the training code
 
 Please set some params. Check 
