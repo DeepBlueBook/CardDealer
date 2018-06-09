@@ -39,6 +39,8 @@ parser.add_argument('--lr_step', type=int, default=30,
 parser.add_argument('--cpu', action='store_true', help='use cuda?')
 parser.add_argument('--seed', type=int, default=123,
                     help='random seed to use. Default=123')
+parser.add_argument('--data_path', type=str, default="/ceph/rmurase/Datasets/card_templates/",
+                    help='path to image dataset')
 args = parser.parse_args()
 
 assert args.reso % 32 == 0
@@ -87,10 +89,9 @@ optimizer = optim.Adam(model.parameters(), lr=args.lr)
 
 # Loading data
 print('===> Loading datasets')
-image_data_path = "/ceph/rmurase/Datasets/card_templates/"
-_image_files = os.listdir(image_data_path)
+_image_files = os.listdir(args.data_path)
 image_file_names = list(
-    map(lambda image_file_name: image_data_path + image_file_name, _image_files))
+    map(lambda image_file_name: args.data_path + image_file_name, _image_files))
 image_files = []
 for n in image_file_names:
     image_files.append(cv2.imread(n, 1))
