@@ -3,9 +3,10 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
+from torchvision import transforms
 
 from darknet import Darknet
-from dataset import DataGenerator
+from dataset import CardData
 #from util import read_truths_args, read_data_cfg
 from loss import V3Loss
 
@@ -13,6 +14,7 @@ import os
 import argparse
 from math import log10
 import cv2
+import glob
 
 def parser():
     # Training settings
@@ -83,19 +85,28 @@ def main(args):
 
     # Loss Function and Optimizer
     criterion = V3Loss(num_classes=nC, anchors=scale_anchors, num_anchors=nA,
-                    resolution=args.reso, strides=strides, device=device)
+                       resolution=args.reso, strides=strides, device=device)
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
 
     # Loading data
     print('===> Loading datasets')
-    _image_files = os.listdir(args.data_path)
-    image_file_names = list(
-        map(lambda image_file_name: args.data_path + image_file_name, _image_files))
+    image_file_names = glob.glob(args.data_path + '/*')
     image_files = []
     for n in image_file_names:
         image_files.append(cv2.imread(n, 1))
-    dataloader = DataGenerator(args.batchsize, [
-                            args.reso, args.reso], image_files, image_file_names, max_num=1)  # default args.reso=416
+
+    dataset = CardData(
+        image_size = [args.reso, args.reso],
+        image_list = image_files,
+        image_classid_list = image_file_names,
+        transform=transforms.Compose([
+            transforms.ToTensor()]),
+        )
+            
+    dataloader = torch.utils.data.DataLoader(
+        dataset, batch_size=args.batchsize, shuffle=True,
+        num_workers=8, pin_memory=True)
+
     print("Batch size{}, input_dim{}".format(
         args.batchsize, [args.reso, args.reso]))
 
@@ -103,6 +114,7 @@ def main(args):
     for epoch in range(1, args.nEpochs + 1):
         train(model, optimizer, dataloader, criterion, device, epoch, args)
         test(model, dataloader, criterion, device, epoch, args)
+
 
 def adjust_learning_rate(args, optimizer, epoch):
     lr = args.lr * ((1.0/args.lr_decay) ** (epoch // args.lr_step))
@@ -115,9 +127,9 @@ def adjust_learning_rate(args, optimizer, epoch):
 def train(model, optimizer, dataloader, criterion, device, epoch, args):
     lr = adjust_learning_rate(args, optimizer, epoch)
     epoch_loss = 0
-    for iteration, batch in enumerate(dataloader.generate(), 1):
-        input, target = torch.tensor(batch[0], requires_grad=True, dtype=torch.float).to(
-            device), torch.tensor(batch[1], dtype=torch.float).to(device)
+    for iteration, batch in enumerate(dataloader, 1):
+        input = batch[0].to(device)
+        target = torch.tensor(batch[1]).to(device)
 
         optimizer.zero_grad()
         loss = criterion(model(input), target)
@@ -140,9 +152,9 @@ def train(model, optimizer, dataloader, criterion, device, epoch, args):
 def test(model, dataloader, criterion, device, epoch, args):
     avg_loss = 0
     with torch.no_grad():
-        for iteration, batch in enumerate(dataloader.generate(), 1):
-            input, target = torch.tensor(batch[0], dtype=torch.float).to(
-                device), torch.tensor(batch[1], dtype=torch.float).to(device)
+        for iteration, batch in enumerate(dataloader, 1):
+            input = batch[0].to(device)
+            target = torch.tensor(batch[1]).to(device)
 
             prediction = model(input)
             mse = criterion(prediction, target)
@@ -160,4 +172,3 @@ if __name__ == "__main__":
     if not os.path.exists(args.save):
         os.mkdir(args.save)
     main(args)
-    
