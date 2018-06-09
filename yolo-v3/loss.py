@@ -151,6 +151,7 @@ class V3Loss(nn.Module):
         nA = self.num_anchors
         nC = self.num_classes
         self.output_split = 0
+        self.losses = []
 
         for i, stride in enumerate(self.strides):
             nH = self.reso // stride
