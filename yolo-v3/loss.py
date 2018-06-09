@@ -145,7 +145,7 @@ class V3Loss(nn.Module):
         self.losses = []
 
     def forward(self, output, target):
-        #output : BxAs*(4+1+num_classes)*H*W
+        # output : BxAs*(4+1+num_classes)*H*W
         t0 = time.time()
         nB = output.data.size(0)
         nA = self.num_anchors
@@ -193,8 +193,8 @@ class V3Loss(nn.Module):
             loss_cls = self.class_scale * \
                 nn.BCELoss(size_average=False)(cls, tcls)   # Todo
             loss = loss_x + loss_y + loss_w + loss_h + loss_conf + loss_cls
-            print("loss_x {} loss_y {} loss_w {} loss_h {} loss_conf {} loss_cls {}".format(
-                loss_x, loss_y, loss_w, loss_h, loss_conf, loss_cls))
+            # print("loss_x {} loss_y {} loss_w {} loss_h {} loss_conf {} loss_cls {}".format(
+            #     loss_x, loss_y, loss_w, loss_h, loss_conf, loss_cls))
             self.losses.append(loss)
         return sum(self.losses)
 

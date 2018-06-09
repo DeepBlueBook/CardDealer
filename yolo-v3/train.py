@@ -1,3 +1,5 @@
+# encoding: utf-8
+
 from __future__ import print_function
 import torch
 import torch.nn as nn
@@ -15,6 +17,7 @@ import argparse
 from math import log10
 import cv2
 import glob
+
 
 def parser():
     # Training settings
@@ -96,29 +99,29 @@ def main(args):
         image_files.append(cv2.imread(n, 1))
 
     dataset = CardData(
-        image_size = [args.reso, args.reso],
-        image_list = image_files,
-        image_classid_list = image_file_names,
+        image_size=[args.reso, args.reso],
+        image_list=image_files,
+        image_classid_list=image_file_names,
         transform=transforms.Compose([
             transforms.ToTensor()]),
-        )
-            
-    dataloader = torch.utils.data.DataLoader(
-        dataset, batch_size=args.batchsize, shuffle=True,
-        num_workers=8, pin_memory=True)
+    )
 
-    print("Batch size{}, input_dim{}".format(
+    dataloader = torch.utils.data.DataLoader(
+        dataset, batch_size=args.batchsize, shuffle=False,
+        num_workers=8, pin_memory=False)
+
+    print("Batch size: {}, input_dim: {}".format(
         args.batchsize, [args.reso, args.reso]))
 
     # train and test
     for epoch in range(1, args.nEpochs + 1):
         train(model, optimizer, dataloader, criterion, device, epoch, args)
-        test(model, dataloader, criterion, device, epoch, args)
+        # test(model, dataloader, criterion, device, epoch, args)
 
 
 def adjust_learning_rate(args, optimizer, epoch):
     lr = args.lr * ((1.0/args.lr_decay) ** (epoch // args.lr_step))
-    print("===> Epoch {} lr: {}".format(epoch, lr))
+    # print("===> Epoch {} lr: {}".format(epoch, lr))
     for param_group in optimizer.param_groups:
         param_group['lr'] = lr
     return lr
@@ -137,11 +140,9 @@ def train(model, optimizer, dataloader, criterion, device, epoch, args):
         loss.backward()
         optimizer.step()
 
-        print("===> Epoch[{}]({}/{}): lr{} Loss: {:.4f}".format(epoch,
-                                                                iteration, len(dataloader), lr, loss.item()))
-        if iteration == len(dataloader):
-            break
-    print("===> Epoch {} Complete: Avg. Loss: {:.4f}".format(
+        print("\r===> Epoch[{}]({}/{}): lr: {} Loss: {:.3f}".format(epoch,
+                                                                    iteration, len(dataloader), lr, loss.item()), end='')
+    print("\n ==> Epoch {} Complete: Avg. Loss: {:.4f}".format(
         epoch, epoch_loss / len(dataloader)))
     if (epoch+1) % args.save_interval == 0:
         print('save weights to %s/%06d.weights' % (args.save, epoch+1))
@@ -156,13 +157,11 @@ def test(model, dataloader, criterion, device, epoch, args):
             input = batch[0].to(device)
             target = torch.tensor(batch[1]).to(device)
 
-            prediction = model(input)
-            mse = criterion(prediction, target)
-            loss = 10 * log10(1 / mse.item())
+            loss = criterion(model(input), target)
             avg_loss += loss
             if iteration > 100:
                 break
-    print("===>Epoch: {} Avg. Loss: {:.4f} dB".format(epoch, avg_loss / 100))
+    print("===>Epoch: {} Avg. Loss: {:.4f} dB\n".format(epoch, avg_loss / 100))
 
 
 if __name__ == "__main__":
@@ -171,4 +170,7 @@ if __name__ == "__main__":
     assert args.reso > 32
     if not os.path.exists(args.save):
         os.mkdir(args.save)
+    if not os.path.exists(args.data_path):
+        msg = 'Folder not found at: {}\nSpecify correct path with argument --data_path'.format(args.data_path)
+        raise OSError(msg)
     main(args)

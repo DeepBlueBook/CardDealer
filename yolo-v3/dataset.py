@@ -1,16 +1,15 @@
-#!/usr/bin/python
 # encoding: utf-8
 
 import os
-import random
+# import random
 import torch
 import numpy as np
 from torch.utils.data import Dataset
-from PIL import Image
+# from PIL import Image
 #from util import read_truths_args, read_truths
 #from image import *
 
-from scipy.misc import imread, imsave
+# from scipy.misc import imread, imsave
 # from random import *
 import cv2
 
@@ -178,7 +177,7 @@ class CardData(Dataset):
     def __getitem__(self, index):
         sample, cls, bx, by, bw, bh = self.generate_image()
         # sample = img.transpose(2, 0, 1)
-        target =np.zeros((5*50))
+        target = np.zeros((5*50))
         target[:5] = np.array([cls, bx, by, bw, bh])
         if self.transform is not None:
             sample = self.transform(sample)
