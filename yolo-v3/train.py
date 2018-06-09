@@ -27,7 +27,7 @@ parser.add_argument("--save", dest = 'save', help =
                     default = "backup/", type = str)
 parser.add_argument("--reso", dest = 'reso', help = 
                     "Input resolution of the network. Increase to increase accuracy. Decrease to increase speed",
-                    default = "416", type = str)
+                    default = "416", type = int)
 parser.add_argument('--batchsize', type=int, default=32, help='training batch size')
 parser.add_argument('--nEpochs', type=int, default=100, help='number of epochs to train for')
 parser.add_argument('--save_interval', type=int, default=10, help='a period of save checkpoint')
