@@ -144,7 +144,7 @@ def train(model, optimizer, dataloader, criterion, device, epoch, args):
         print("\r===> Epoch[{}]({}/{}): lr: {} Loss: {:.3f}".format(epoch,
                                                                     iteration, len(dataloader), lr, loss.item()), end='')
         with open(os.path.join(args.save, 'loss.txt'), 'a') as f:
-            f.write('{}\n'.format(epoch_loss))
+            f.write('{}\n'.format(loss.item()))
     print("\n ==> Epoch {} Complete: Avg. Loss: {:.4f}".format(
         epoch, epoch_loss / len(dataloader)))
     if (epoch+1) % args.save_interval == 0:
