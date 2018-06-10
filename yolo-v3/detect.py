@@ -35,7 +35,7 @@ def get_test_input(input_dim, CUDA):
     img = cv2.imread("dog-cycle-car.png")
     img = cv2.resize(img, (input_dim, input_dim))
     img_ = img[:, :, ::-1].transpose((2, 0, 1))
-    img_ = img_[np.newaxis, :, :, :]/255.0
+    img_ = img_[np.newaxis, :, :, :] / 255.0
     img_ = torch.from_numpy(img_).float()
     img_ = Variable(img_)
 
@@ -85,8 +85,8 @@ if __name__ == '__main__':
 
     scales_indices = []
     args.reso = int(args.reso)
-    num_boxes = [args.reso//8, args.reso//16, args.reso//32]
-    num_boxes = sum([3*(x**2) for x in num_boxes])
+    num_boxes = [args.reso // 8, args.reso // 16, args.reso // 32]
+    num_boxes = sum([3 * (x**2) for x in num_boxes])
 
     for scale in scales:
         li = list(range((scale - 1) * num_boxes // 3, scale * num_boxes // 3))
@@ -157,8 +157,8 @@ if __name__ == '__main__':
 
     if batch_size != 1:
         num_batches = len(imlist) // batch_size + leftover
-        im_batches = [torch.cat((im_batches[i*batch_size: min((i + 1)*batch_size,
-                                                              len(im_batches))])) for i in range(num_batches)]
+        im_batches = [torch.cat((im_batches[i * batch_size: min((i + 1) * batch_size,
+                                                                len(im_batches))])) for i in range(num_batches)]
 
     i = 0
 
@@ -208,7 +208,7 @@ if __name__ == '__main__':
 
 #        print(end - start)
 
-        prediction[:, 0] += i*batch_size
+        prediction[:, 0] += i * batch_size
 
         if not write:
             output = prediction
@@ -216,11 +216,11 @@ if __name__ == '__main__':
         else:
             output = torch.cat((output, prediction))
 
-        for im_num, image in enumerate(imlist[i*batch_size: min((i + 1)*batch_size, len(imlist))]):
-            im_id = i*batch_size + im_num
+        for im_num, image in enumerate(imlist[i * batch_size: min((i + 1) * batch_size, len(imlist))]):
+            im_id = i * batch_size + im_num
             objs = [classes[int(x[-1])] for x in output if int(x[0]) == im_id]
             print("{0:20s} predicted in {1:6.3f} seconds".format(
-                image.split("/")[-1], (end - start)/batch_size))
+                image.split("/")[-1], (end - start) / batch_size))
             print("{0:20s} {1:s}".format("Objects Detected:", " ".join(objs)))
             print("----------------------------------------------------------")
         i += 1
@@ -236,12 +236,12 @@ if __name__ == '__main__':
 
     im_dim_list = torch.index_select(im_dim_list, 0, output[:, 0].long())
 
-    scaling_factor = torch.min(inp_dim/im_dim_list, 1)[0].view(-1, 1)
+    scaling_factor = torch.min(inp_dim / im_dim_list, 1)[0].view(-1, 1)
 
     output[:, [1, 3]] -= (inp_dim - scaling_factor *
-                          im_dim_list[:, 0].view(-1, 1))/2
+                          im_dim_list[:, 0].view(-1, 1)) / 2
     output[:, [2, 4]] -= (inp_dim - scaling_factor *
-                          im_dim_list[:, 1].view(-1, 1))/2
+                          im_dim_list[:, 1].view(-1, 1)) / 2
 
     output[:, 1:5] /= scaling_factor
 
@@ -297,7 +297,7 @@ if __name__ == '__main__':
         "Output Processing", class_load - output_recast))
     print("{:25s}: {:2.3f}".format("Drawing Boxes", end - draw))
     print("{:25s}: {:2.3f}".format(
-        "Average time_per_img", (end - load_batch)/len(imlist)))
+        "Average time_per_img", (end - load_batch) / len(imlist)))
     print("----------------------------------------------------------")
 
     torch.cuda.empty_cache()

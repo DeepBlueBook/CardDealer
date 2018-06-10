@@ -53,7 +53,7 @@ def main(args):
     model.load_state_dict(checkpoint['state_dict'])
     # optimizer.load_state_dict(checkpoint['optimizer'])
     print("===> Loaded checkpoint '{}' (epoch {})"
-            .format(args.weight, checkpoint['epoch']))
+          .format(args.weight, checkpoint['epoch']))
 
     # Preparing for parse to loss func
     scale_anchors = []  # selection anchors in the respective scales

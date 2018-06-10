@@ -177,7 +177,7 @@ class CardData(Dataset):
     def __getitem__(self, index):
         sample, cls, bx, by, bw, bh = self.generate_image()
         # sample = img.transpose(2, 0, 1)
-        target = np.zeros((5*50))
+        target = np.zeros((5 * 50))
         target[:5] = np.array([cls, bx, by, bw, bh])
         if self.transform is not None:
             sample = self.transform(sample)
@@ -199,12 +199,13 @@ class CardData(Dataset):
         bx = np.random.random()
         by = np.random.random()
 
-        center = [(int)(bx*self.image_size[0]), (int)(by*self.image_size[1])]
+        center = [(int)(bx * self.image_size[0]),
+                  (int)(by * self.image_size[1])]
 
         # decide scale
         scale = 0.4
-        bw = src_image.shape[1]*scale/self.image_size[0]
-        bh = src_image.shape[0]*scale/self.image_size[1]
+        bw = src_image.shape[1] * scale / self.image_size[0]
+        bh = src_image.shape[0] * scale / self.image_size[1]
 
         resized_image = cv2.resize(src_image, ((int)(
             scale * src_image.shape[1]), (int)(scale * src_image.shape[0])))
@@ -212,9 +213,9 @@ class CardData(Dataset):
         canvas = np.zeros(
             (self.image_size[0], self.image_size[1]), dtype=np.float32)
 
-        T = np.array([[1.0, 0.0, 1.0*(int)(bx*canvas.shape[0]) - resized_image.shape[1]/2],
-                      [0.0, 1.0, 1.0*(int)(by*canvas.shape[1]) -
-                       resized_image.shape[0]/2],
+        T = np.array([[1.0, 0.0, 1.0 * (int)(bx * canvas.shape[0]) - resized_image.shape[1] / 2],
+                      [0.0, 1.0, 1.0 * (int)(by * canvas.shape[1]) -
+                       resized_image.shape[0] / 2],
                       [0.0, 0.0, 1.0]])
         canvas = cv2.warpPerspective(
             resized_image, T, (canvas.shape[0], canvas.shape[1]))
@@ -254,7 +255,7 @@ if __name__ == "__main__":
             # Display the image
             ax.imshow(src)
             rect = patches.Rectangle(
-                (bb[0]-bb[2]/2, bb[1]-bb[3]/2), bb[2], bb[3], linewidth=3, edgecolor='r')
+                (bb[0] - bb[2] / 2, bb[1] - bb[3] / 2), bb[2], bb[3], linewidth=3, edgecolor='r')
             ax.add_patch(rect)
             plt.savefig("bb_test.jpg")
 
